@@ -1,24 +1,34 @@
 package com.romaneguenruiz.erpuni.application.service;
 
 import com.romaneguenruiz.erpuni.application.dto.UserDTO;
+import com.romaneguenruiz.erpuni.application.mapper.UserMapper;
 import com.romaneguenruiz.erpuni.domain.entity.UserEntity;
-import com.romaneguenruiz.erpuni.domain.repository.UserRepository;
-import org.springframework.transaction.annotation.Transactional;
-import lombok.RequiredArgsConstructor;
+import com.romaneguenruiz.erpuni.domain.repository.IUserRepository;
+import com.romaneguenruiz.erpuni.util.PasswordUtil;
 import org.springframework.stereotype.Service;
-
-import java.util.Optional;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@RequiredArgsConstructor
 @Transactional
-public class UserService {
+public class UserService implements IUserService {
 
-    private final UserRepository userRepository;
+    private final IUserRepository userRepository;
 
+    public UserService(IUserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     @Transactional(readOnly = true)
-    public Optional<UserDTO> getUserById(Long id) {
-        return Optional.of(new UserDTO(userRepository.findById(id).get().getId()));
+    @Override
+    public UserDTO getUserById(Long id) {
+        return UserMapper.toDTO(userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found")));
+    }
+
+    @Override
+    public UserDTO createUser(UserDTO userDTO) {
+        UserEntity userEntity = UserMapper.toEntity(userDTO);
+        userEntity.setPassword(PasswordUtil.hashPassword(userDTO.password()));
+        userRepository.save(userEntity);
+        return UserMapper.toDTO(userEntity);
     }
 }
